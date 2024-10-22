@@ -12,11 +12,12 @@ export default function Playground({ user, game, isNew }) {
         host: '/',
         port: 3003
     }));
-    const matrix = useRef([]);
+    const matrix = useRef(Array(3).fill(null).map(() => Array(3).fill(null)));
     const conn = useRef(null);
     const canvasRef = useRef(null);
     const canvasContext = useRef(null);
     const isX = useRef(Math.random() >= 0.5);
+    const moveCount = useRef(0);
     useEffect(() => {
         canvasContext.current = canvasRef.current.getContext('2d');
         const verticies = [
@@ -80,12 +81,10 @@ export default function Playground({ user, game, isNew }) {
     }, []);
 
     const drawCross = (xPos, yPos) => {
-        if (!matrix.current[xPos]) {
-            matrix.current[xPos] = [];
-        }
-        if (typeof matrix.current[xPos][yPos] != 'undefined') {
+        if (matrix.current[xPos][yPos] != null) {
             return;
         }
+
         var crossVertices = [];
         var baseX = xPos * 100 + 15;
         var baseY = yPos * 100 + 15;
@@ -103,13 +102,13 @@ export default function Playground({ user, game, isNew }) {
             canvasContext.current.stroke();
         });
         matrix.current[xPos][yPos] = 1;
+        setTimeout(() => {
+            checkWin(1);
+        }, 10);
     };
 
     const drawCircle = (xPos, yPos) => {
-        if (!matrix.current[xPos]) {
-            matrix.current[xPos] = [];
-        }
-        if (typeof matrix.current[xPos][yPos] != 'undefined') {
+        if (matrix.current[xPos][yPos] != null) {
             return;
         }
         const baseX = (xPos * 100) + 52.5;
@@ -118,7 +117,62 @@ export default function Playground({ user, game, isNew }) {
         canvasContext.current.arc(baseX, baseY, 30, 0, 2 * Math.PI);
         canvasContext.current.stroke();
         matrix.current[xPos][yPos] = 0;
+        setTimeout(() => {
+            checkWin(0);
+        }, 10)
     };
+
+    const checkWin = (player) => {
+        const size = 3; // Assuming a 3x3 Tic-Tac-Toe board
+        let win = false;
+    
+        let rowWin, colWin;
+        let diag1Win = true; // Left-to-right diagonal
+        let diag2Win = true; // Right-to-left diagonal
+    
+        for (let i = 0; i < size; i++) {
+            rowWin = true;
+            colWin = true;
+    
+            for (let j = 0; j < size; j++) {
+                // Check row
+                if (matrix.current[i][j] !== player) {
+                    rowWin = false;
+                }
+                // Check column
+                if (matrix.current[j][i] !== player) {
+                    colWin = false;
+                }
+            }
+    
+            // If a row or column is fully occupied by the player, declare a win
+            if (rowWin || colWin) {
+                win = true;
+                break;
+            }
+    
+            // Check diagonals
+            if (matrix.current[i][i] !== player) {
+                diag1Win = false;
+            }
+            if (matrix.current[i][size - i - 1] !== player) {
+                diag2Win = false;
+            }
+        }
+    
+        // Check diagonal wins
+        if (diag1Win || diag2Win) {
+            win = true;
+        }
+    
+        if (win) {
+            alert(player + ' won');
+        }else if(moveCount.current >= 9){
+            alert('it is a draw');
+        }else{
+            moveCount.current++;
+        }
+    }    
 
     return(
         <>
