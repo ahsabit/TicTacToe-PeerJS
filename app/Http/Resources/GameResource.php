@@ -17,8 +17,8 @@ class GameResource extends JsonResource
         return [
             'id' => $this->id,
             'level' => $this->level,
-            'player_one' => $this->player_one,
-            'player_two' => $this->player_two
+            'player_one' => new UserResource($this->player_one),
+            'player_two' => new UserResource($this->player_two),
         ];
     }
 }

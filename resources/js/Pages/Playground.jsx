@@ -66,19 +66,20 @@ export default function Playground({ user, game, isNew }) {
             });
             console.log('connected')
         });
-        canvasRef.current.addEventListener('click', (event) => {
-            var rect = canvasRef.current.getBoundingClientRect();
-            var x = Math.floor((event.clientX - rect.left) / 100);
-            var y = Math.floor((event.clientY - rect.top) / 100);
-            if (isX.current) {
-                drawCross(x, y);
-                isX.current = false;
-            }else{
-                drawCircle(x, y);
-                isX.current = true;
-            }
-        });
     }, []);
+
+    const gameEngine = (event) => {
+        var rect = canvasRef.current.getBoundingClientRect();
+        var x = Math.floor((event.clientX - rect.left) / 100);
+        var y = Math.floor((event.clientY - rect.top) / 100);
+        if (isX.current) {
+            drawCross(x, y);
+            isX.current = false;
+        }else{
+            drawCircle(x, y);
+            isX.current = true;
+        }
+    }
 
     const drawCross = (xPos, yPos) => {
         if (matrix.current[xPos][yPos] != null) {
@@ -177,9 +178,17 @@ export default function Playground({ user, game, isNew }) {
     };
 
     return(
-        <>
+        <div className='w-screen h-screen bg-gray-300 pt-4'>
             <Head title='Tic Tac Toe'/>
-            <canvas className='bg-sky-500' width={310} height={310} ref={canvasRef}></canvas>
-        </>
+            <div className='mx-auto w-fit h-fit shadow-2xl rounded-2xl p-6 bg-gray-100'>
+                <h1 className='w-full text-center font-bold text-2xl mb-4'>Tic Tac Toe</h1>
+                <canvas width={310} height={310} onClick={(event) => gameEngine(event)} ref={canvasRef}></canvas>
+            </div>
+            <div>
+                <div>
+                    <span>Player One: {isNew ? user.data.name : game.data.player_one.name}</span>
+                </div>
+            </div>
+        </div>
     )
 };

@@ -10,4 +10,14 @@ class Game extends Model
     /** @use HasFactory<\Database\Factories\GameFactory> */
     use HasFactory;
     protected $fillable = ['level', 'player_one', 'player_two'];
+
+    public function player_one()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function player_two()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

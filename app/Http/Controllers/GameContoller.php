@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 use App\Events\EndGame;
 use App\Events\InitiateGame;
 use App\Http\Resources\GameResource;
-use App\Http\Resources\UserClientResource;
+use App\Http\Resources\UserResource;
 use App\Models\Game;
 use App\Models\LeaderBoard;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -18,40 +19,44 @@ class GameContoller extends Controller
     {
         $user = Auth::user();
         return Inertia::render("Dashboard",[
-            "user" => new UserClientResource($user)
+            "user" => new UserResource($user)
         ]);
     }
 
     public function playground()
     {
-        //first see if any game needs one player.
+        // Get the current authenticated user
         $user = Auth::user();
         $game = null;
         $isNew = false;
-
-        $usersGame = Game::where('player_one', $user->id)->get();
-        $playedGame = Game::where('player_two', $user->id)->get();
-        $needsPlayer = Game::whereNull('player_two')->get();
-        //if the there is any available game going on then join that
-        if ($usersGame->count() > 0 || $playedGame->count() > 0) {
-            $game = $usersGame->count() > 0 ? $usersGame[0] : $playedGame[0];
-        }else{
-            if ($needsPlayer->count() > 0) {
-                // join $needPlayer[0]
-                $needsPlayer[0]->update(['player_two' => $user->id]);
-                $game = $needsPlayer[0];
-            }else{
+    
+        // Find if the user already has a game or needs to join one
+        $usersGame = Game::where('player_one', $user->id)->first();
+        $playedGame = Game::where('player_two', $user->id)->first();
+        $needsPlayer = Game::whereNull('player_two')->first();
+    
+        // If the user is already in a game, retrieve it, otherwise look for a game to join
+        if ($usersGame || $playedGame) {
+            $game = $usersGame ?? $playedGame;  // Assign the first non-null game
+        } else {
+            if ($needsPlayer) {
+                // Join the first available game needing a second player
+                $needsPlayer->update(['player_two' => $user->id]);
+                $game = $needsPlayer;
+            } else {
+                // Create a new game if no game needs a second player
                 $newGame = Game::create([
-                            'level' => 1,
-                            'player_one' => $user->id,
-                        ]);
+                    'level' => 1,
+                    'player_one' => $user->id,
+                ]);
                 $game = $newGame;
                 $isNew = true;
             }
         }
-        //else create a new game
+    
+        // Render the Inertia Playground component with user, game, and isNew data
         return Inertia::render("Playground", [
-            "user" => new UserClientResource($user),
+            "user" => new UserResource($user),
             "game" => new GameResource($game),
             "isNew" => $isNew
         ]);
