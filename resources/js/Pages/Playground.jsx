@@ -164,15 +164,17 @@ export default function Playground({ user, game, isNew }) {
         if (diag1Win || diag2Win) {
             win = true;
         }
+        
+        moveCount.current++;
     
         if (win) {
             alert(player + ' won');
-        }else if(moveCount.current >= 9){
-            alert('it is a draw');
-        }else{
-            moveCount.current++;
+            return;
         }
-    }    
+        if (moveCount.current == 9){
+            alert('it is a draw');
+        }
+    };
 
     return(
         <>
