@@ -25,26 +25,19 @@ class GameContoller extends Controller
 
     public function playground()
     {
-        // Get the current authenticated user
         $user = Auth::user();
         $game = null;
         $isNew = false;
-    
-        // Find if the user already has a game or needs to join one
         $usersGame = Game::where('player_one', $user->id)->first();
         $playedGame = Game::where('player_two', $user->id)->first();
         $needsPlayer = Game::whereNull('player_two')->first();
-    
-        // If the user is already in a game, retrieve it, otherwise look for a game to join
         if ($usersGame || $playedGame) {
-            $game = $usersGame ?? $playedGame;  // Assign the first non-null game
+            $game = $usersGame ?? $playedGame;
         } else {
             if ($needsPlayer) {
-                // Join the first available game needing a second player
                 $needsPlayer->update(['player_two' => $user->id]);
                 $game = $needsPlayer;
             } else {
-                // Create a new game if no game needs a second player
                 $newGame = Game::create([
                     'level' => 1,
                     'player_one' => $user->id,
@@ -53,12 +46,10 @@ class GameContoller extends Controller
                 $isNew = true;
             }
         }
-    
-        // Render the Inertia Playground component with user, game, and isNew data
         return Inertia::render("Playground", [
             "user" => new UserResource($user),
             "game" => new GameResource($game),
-            "isNew" => $isNew
+            "isNew" => $isNew,
         ]);
     }
 
@@ -72,7 +63,7 @@ class GameContoller extends Controller
 
     public function initiateGame(Request $request)
     {
-        broadcast(new InitiateGame($request->gameId, $request->peerId))->toOthers();
+        broadcast(new InitiateGame($request->gameId, $request->peerId, $request->player))->toOthers();
         return response()->json(['status' => 'success', 'message'=> 'Game initiation request sent']);
     }
 

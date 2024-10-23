@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Peer } from "https://esm.sh/peerjs@1.5.4?bundle-deps";
 import '../echo';
 import axios from 'axios';
 import { Head } from '@inertiajs/react';
+import InlineScoreBoard from '@/Components/InlineScoreBoard';
 window.axios = axios;
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -13,12 +14,17 @@ export default function Playground({ user, game, isNew }) {
         port: 3003
     }));
     const matrix = useRef(Array(3).fill(null).map(() => Array(3).fill(null)));
-    const conn = useRef(null);
     const canvasRef = useRef(null);
     const canvasContext = useRef(null);
-    const isX = useRef(Math.random() >= 0.5);
+    const isTurn = useRef(true);
+    const thisPlayer = useRef(Math.random() > 0.5 ? true : false);
     const moveCount = useRef(0);
+    const playerOneScore = useRef(0);
+    const playerTwoScore = useRef(0);
+    const [playerTwo, setPlayerTwo] = useState(game.data.player_two);
+    const mainConn = useRef(null);
     useEffect(() => {
+        user.data.playerSide = thisPlayer.current;
         canvasContext.current = canvasRef.current.getContext('2d');
         const verticies = [
                 [[5, 5],   [300, 5]],
@@ -42,44 +48,162 @@ export default function Playground({ user, game, isNew }) {
         window.Echo.private(`game.${game.data.id}`)
             .listen('InitiateGame', (e) => {
                 console.log(e);
-                conn.current = peerConnection.current.connect(e.peerId);
+                if (e.player.isPlayerTwo == true && user.data.id != e.player.id) {
+                    setPlayerTwo(e.player);
+                } else {
+                    setPlayerTwo(user.data);
+                }
+                thisPlayer.current = !e.player.playerSide;
+                mainConn.current = peerConnection.current.connect(e.peerId);
+        
+                if (mainConn.current) {
+                    console.log(mainConn, 'there');
+                    // Handle incoming data
+                    mainConn.current.on('data', (data) => {
+                        console.log('data came');
+                        data = JSON.parse(data);
+                        console.log('Data received:', data);
+                        try {
+                            if (!thisPlayer.current) {
+                                drawCross(data.a, data.b);
+                            } else {
+                                drawCircle(data.a, data.b);
+                            }
+                            isTurn.current = true;  // Allow the user to play after receiving data
+                        } catch (error) {
+                            console.error('Error handling data:', error);
+                        }
+                    });
+    
+                    canvasRef.current.addEventListener('click', (event) => {
+                        if (!mainConn) {
+                            console.error('No active connection');
+                            return; // Exit if there's no connection
+                        }
+                    
+                        var rect = canvasRef.current.getBoundingClientRect();
+                        var x = Math.floor((event.clientX - rect.left) / 100);
+                        var y = Math.floor((event.clientY - rect.top) / 100);
+                    
+                        if (isTurn.current) {  // Correctly access the 'current' property
+                            mainConn.current.send(JSON.stringify({
+                                a : x,
+                                b: y
+                            }));  // Send coordinates through the connection
+                        
+                            if (thisPlayer.current) {
+                                drawCross(x, y);
+                            } else {
+                                drawCircle(x, y);
+                            }
+                            isTurn.current = false;  // Switch turn after sending
+                            console.log('Move sent');
+                        }
+                    });
+                
+                    // Handle connection errors
+                    mainConn.current.on('error', (err) => {
+                        console.error('Connection error:', err);
+                    });
+                
+                    // Handle connection close
+                    mainConn.current.on('close', () => {
+                        console.log('Connection closed');
+                        mainConn.current = null;  // Clear the connection when it's closed
+                    });
+                }else{
+                    console.log('error');
+                }
             })
             .listen('EndGame', (e) => {
                 console.log(e);
             });
         peerConnection.current.on('open', (id) => {
+            var isSecond = false;
+            if(game.data.player_two){
+                isSecond = game.data.player_two.id == user.data.id;
+            }
+            user.data.isPlayerTwo = isSecond;
             if (!isNew) {
-                axios.post('/start', {
+                window.axios.post('/start', {
                     gameId: game.data.id,
-                    peerId: id
+                    peerId: id,
+                    player: user.data,
                 }).then((e) => {
-                    console.log(e);
+                    return;
                 }).catch((err) => {
                     throw new Error(err);
                 });
             }
         });
-        peerConnection.current.on('connection', (secondconn) => {
-            conn.current = secondconn;
-            secondconn.on('data', (data) => {
-                console.log(data);
-            });
-            console.log('connected')
-        });
-    }, []);
+        peerConnection.current.on('data', () => console.log('data came to me'));
 
-    const gameEngine = (event) => {
-        var rect = canvasRef.current.getBoundingClientRect();
-        var x = Math.floor((event.clientX - rect.left) / 100);
-        var y = Math.floor((event.clientY - rect.top) / 100);
-        if (isX.current) {
-            drawCross(x, y);
-            isX.current = false;
-        }else{
-            drawCircle(x, y);
-            isX.current = true;
-        }
-    }
+        // Handle peer connection
+        peerConnection.current.on('connection', (conn) => {
+            console.log('New connection established');
+             // Assign the connection to the higher-scope variable
+        
+            if (mainConn.current = conn) {
+                console.log(mainConn, 'there');
+                // Handle incoming data
+                mainConn.current.on('data', (data) => {
+                    console.log('data came');
+                    data = JSON.parse(data);
+                    console.log('Data received:', data);
+                    try {
+                        if (!thisPlayer.current) {
+                            drawCross(data.a, data.b);
+                        } else {
+                            drawCircle(data.a, data.b);
+                        }
+                        isTurn.current = true;  // Allow the user to play after receiving data
+                    } catch (error) {
+                        console.error('Error handling data:', error);
+                    }
+                });
+
+                canvasRef.current.addEventListener('click', (event) => {
+                    if (!mainConn) {
+                        console.error('No active connection');
+                        return; // Exit if there's no connection
+                    }
+                
+                    var rect = canvasRef.current.getBoundingClientRect();
+                    var x = Math.floor((event.clientX - rect.left) / 100);
+                    var y = Math.floor((event.clientY - rect.top) / 100);
+                
+                    if (isTurn.current) {  // Correctly access the 'current' property
+                        mainConn.current.send(JSON.stringify({
+                            a : x,
+                            b: y
+                        }));  // Send coordinates through the connection
+                    
+                        if (thisPlayer.current) {
+                            drawCross(x, y);
+                        } else {
+                            drawCircle(x, y);
+                        }
+                        isTurn.current = false;  // Switch turn after sending
+                        console.log('Move sent');
+                    }
+                });
+            
+                // Handle connection errors
+                mainConn.current.on('error', (err) => {
+                    console.error('Connection error:', err);
+                });
+            
+                // Handle connection close
+                mainConn.current.on('close', () => {
+                    console.log('Connection closed');
+                    mainConn.current = null;  // Clear the connection when it's closed
+                });
+            }else{
+                console.log('error');
+            }
+        });
+
+    }, []);
 
     const drawCross = (xPos, yPos) => {
         if (matrix.current[xPos][yPos] != null) {
@@ -180,15 +304,19 @@ export default function Playground({ user, game, isNew }) {
     return(
         <div className='w-screen h-screen bg-gray-300 pt-4'>
             <Head title='Tic Tac Toe'/>
-            <div className='mx-auto w-fit h-fit shadow-2xl rounded-2xl p-6 bg-gray-100'>
+            <div className='mx-auto w-[358px] h-[406px] shadow-2xl rounded-2xl p-6 bg-gray-100'>
                 <h1 className='w-full text-center font-bold text-2xl mb-4'>Tic Tac Toe</h1>
-                <canvas width={310} height={310} onClick={(event) => gameEngine(event)} ref={canvasRef}></canvas>
+                <canvas width={310} height={310} ref={canvasRef}></canvas>
             </div>
-            <div>
-                <div>
-                    <span>Player One: {isNew ? user.data.name : game.data.player_one.name}</span>
+            <div className='mx-auto w-[358px] h-16 overflow-hidden flex flex-row justify-between py-4'>
+                <div className='bg-gray-100 h-full w-fit flex justify-center items-center px-4 rounded'>
+                    <span className='block font-bold'>Player One: {isNew ? user.data.name : game.data.player_one.name}</span>
+                </div>
+                <div className='bg-gray-100 h-full w-fit flex justify-center items-center px-4 rounded'>
+                    <span className='block font-bold'>Player Two: {playerTwo == null ? 'loading' : playerTwo.name}</span>
                 </div>
             </div>
+            <InlineScoreBoard playerOneScore={playerOneScore.current} playerTwoScore={playerTwoScore.current} />
         </div>
     )
 };

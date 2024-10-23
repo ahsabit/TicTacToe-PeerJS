@@ -11,13 +11,13 @@ class Game extends Model
     use HasFactory;
     protected $fillable = ['level', 'player_one', 'player_two'];
 
-    public function player_one()
+    public function playerOne()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'player_one');
     }
 
-    public function player_two()
+    public function playerTwo()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'player_two');
     }
 }

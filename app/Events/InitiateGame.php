@@ -15,14 +15,16 @@ class InitiateGame implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
     public $gameId;
     public $peerId;
+    public $player;
 
     /**
      * Create a new event instance.
      */
-    public function __construct($gameId, $peerId)
+    public function __construct($gameId, $peerId, $player)
     {
         $this->gameId = $gameId;
         $this->peerId = $peerId;
+        $this->player = $player;
     }
 
     /**
