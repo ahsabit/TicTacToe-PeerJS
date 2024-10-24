@@ -19,12 +19,14 @@ export default function Playground({ user, game, isNew }) {
     const isTurn = useRef(true);
     const thisPlayer = useRef(Math.random() > 0.5 ? true : false);
     const moveCount = useRef(0);
-    const playerOneScore = useRef(0);
-    const playerTwoScore = useRef(0);
+    const [playerOneScore, setPlayerOneScore] = useState(0);
+    const [playerTwoScore, setPlayerTwoScore] = useState(0);
     const [playerTwo, setPlayerTwo] = useState(game.data.player_two);
     const mainConn = useRef(null);
     const playerOneLead = useRef(null);
     const playerTwoLead = useRef(null);
+    const modal = useRef(null);
+    const modalMessage = useRef(null);
     useEffect(() => {
         user.data.playerSide = thisPlayer.current;
         canvasContext.current = canvasRef.current.getContext('2d');
@@ -49,7 +51,6 @@ export default function Playground({ user, game, isNew }) {
 
         window.Echo.private(`game.${game.data.id}`)
             .listen('InitiateGame', (e) => {
-                console.log(e);
                 if (e.player.isPlayerTwo == true && user.data.id != e.player.id) {
                     setPlayerTwo(e.player);
                 } else {
@@ -59,6 +60,7 @@ export default function Playground({ user, game, isNew }) {
                 mainConn.current = peerConnection.current.connect(e.peerId);
         
                 if (mainConn.current) {
+                    isTurn.current = false;
                     mainConn.current.on('data', (data) => {
                         try {
                             data = JSON.parse(data);
@@ -195,6 +197,7 @@ export default function Playground({ user, game, isNew }) {
             }
         });
 
+        document.getElementById('close-modal').addEventListener('click', closeModal);
     }, []);
 
     const whoseTurn = () => {
@@ -296,14 +299,53 @@ export default function Playground({ user, game, isNew }) {
         moveCount.current++;
     
         if (win) {
-            alert(player + ' won');
+            if (player == 1 && thisPlayer.current == true) {
+                if (user.data.id == game.data.player_one.id) {
+                    setPlayerOneScore(prev => prev + 1);
+                }else{
+                    setPlayerTwoScore(prev => prev + 1);
+                }
+                showModal('You won :)');
+            }else if(player == 1 && thisPlayer.current == false){
+                if (user.data.id == game.data.player_two.id) {
+                    setPlayerOneScore(prev => prev + 1);
+                }else{
+                    setPlayerTwoScore(prev => prev + 1);
+                }
+                showModal('Player X won :(');
+            }else if(player == 0 && thisPlayer.current == true){
+                if (user.data.id == game.data.player_two.id) {
+                    setPlayerOneScore(prev => prev + 1);
+                }else{
+                    setPlayerTwoScore(prev => prev + 1);
+                }
+                showModal('Player: O won :(')
+            }else if(player == 0 && thisPlayer.current == false){
+                if (user.data.id == game.data.player_one.id) {
+                    setPlayerOneScore(prev => prev + 1);
+                }else{
+                    setPlayerTwoScore(prev => prev + 1);
+                }
+                showModal('You won :)')
+            }
+            isTurn.current = false;
             return;
         }
         if (moveCount.current == 9){
-            alert('it is a draw');
+            showModal('It is a Draw :|')
+            return;
         }
     };
-
+    const showModal = (message) => {
+        modalMessage.current.textContent = message;
+        modal.current.classList.remove('hidden');
+        modal.current.classList.add('flex');
+    }
+    
+    const closeModal = () => {
+        modal.current.classList.add('hidden');
+        modal.current.classList.remove('flex'); 
+    }
     return(
         <div className='w-screen h-screen bg-gray-300 pt-4'>
             <Head title='Tic Tac Toe'/>
@@ -329,7 +371,15 @@ export default function Playground({ user, game, isNew }) {
                     </span>
                 </div>
             </div>
-            <InlineScoreBoard playerOneScore={playerOneScore.current} playerTwoScore={playerTwoScore.current} />
+            <InlineScoreBoard playerOneScore={playerOneScore} playerTwoScore={playerTwoScore} />
+            <div ref={modal} className="fixed inset-0 items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+                <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+                    <h2 ref={modalMessage} className="text-xl font-semibold mb-4">Custom Alert</h2>
+                    <button id="close-modal" className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                        OK
+                    </button>
+                </div>
+            </div>
         </div>
     )
 };
