@@ -72,4 +72,21 @@ class GameContoller extends Controller
         broadcast(new EndGame($request->gameId, $request->peerId))->toOthers();
         return response()->json(['status'=> 'success', 'message'=> 'Game ending request sent']);
     }
+
+    public function score(Request $request)
+    {
+        $user = $request->user();
+        $winner = LeaderBoard::where('winner_id', $user->id)->get();
+        if ($winner->count() > 0) {
+            $score = $winner->score + $request->score;
+            $winner->update(['score' => $score]);
+        } else {
+            LeaderBoard::create([
+                'winner_name' => $user->name,
+                'winner_id' => $user->id,
+                'score' => $request->score
+            ]);
+        }
+        response()->json(['status'=> 'success','message'=> 'Score was updated']);
+    }
 }

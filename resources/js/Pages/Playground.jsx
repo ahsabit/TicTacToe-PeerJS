@@ -254,35 +254,33 @@ export default function Playground({ user, game, isNew }) {
     };
 
     const checkWin = (player) => {
-        const size = 3; // Assuming a 3x3 Tic-Tac-Toe board
+        const size = 3;
         let win = false;
     
         let rowWin, colWin;
-        let diag1Win = true; // Left-to-right diagonal
-        let diag2Win = true; // Right-to-left diagonal
+        let diag1Win = true;
+        let diag2Win = true;
     
         for (let i = 0; i < size; i++) {
             rowWin = true;
             colWin = true;
     
             for (let j = 0; j < size; j++) {
-                // Check row
+                
                 if (matrix.current[i][j] !== player) {
                     rowWin = false;
                 }
-                // Check column
+                
                 if (matrix.current[j][i] !== player) {
                     colWin = false;
                 }
             }
-    
-            // If a row or column is fully occupied by the player, declare a win
+            
             if (rowWin || colWin) {
                 win = true;
                 break;
             }
-    
-            // Check diagonals
+            
             if (matrix.current[i][i] !== player) {
                 diag1Win = false;
             }
@@ -290,8 +288,7 @@ export default function Playground({ user, game, isNew }) {
                 diag2Win = false;
             }
         }
-    
-        // Check diagonal wins
+        
         if (diag1Win || diag2Win) {
             win = true;
         }
@@ -305,6 +302,9 @@ export default function Playground({ user, game, isNew }) {
                 }else{
                     setPlayerTwoScore(prev => prev + 1);
                 }
+                window.axios.post('/score', {
+                    score: 1
+                });
                 showModal('You won :)');
             }else if(player == 1 && thisPlayer.current == false){
                 if (user.data.id == game.data.player_two.id) {
@@ -326,6 +326,9 @@ export default function Playground({ user, game, isNew }) {
                 }else{
                     setPlayerTwoScore(prev => prev + 1);
                 }
+                window.axios.post('/score', {
+                    score: 1
+                });
                 showModal('You won :)')
             }
             isTurn.current = false;

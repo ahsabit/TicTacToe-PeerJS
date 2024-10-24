@@ -12,6 +12,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/leaderboard', [GameContoller::class,'leaderboard'])->name('game.leaderboard');
     Route::post('/start', [GameContoller::class,'initiateGame'])->name('game.start');
     Route::post('/stop', [GameContoller::class,'endGame'])->name('game.stop');
+    Route::post('/score', [GameContoller::class,'score'])->name('game.score');
     
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
