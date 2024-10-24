@@ -23,6 +23,8 @@ export default function Playground({ user, game, isNew }) {
     const playerTwoScore = useRef(0);
     const [playerTwo, setPlayerTwo] = useState(game.data.player_two);
     const mainConn = useRef(null);
+    const playerOneLead = useRef(null);
+    const playerTwoLead = useRef(null);
     useEffect(() => {
         user.data.playerSide = thisPlayer.current;
         canvasContext.current = canvasRef.current.getContext('2d');
@@ -57,19 +59,16 @@ export default function Playground({ user, game, isNew }) {
                 mainConn.current = peerConnection.current.connect(e.peerId);
         
                 if (mainConn.current) {
-                    console.log(mainConn, 'there');
-                    // Handle incoming data
                     mainConn.current.on('data', (data) => {
-                        console.log('data came');
-                        data = JSON.parse(data);
-                        console.log('Data received:', data);
                         try {
+                            data = JSON.parse(data);
                             if (!thisPlayer.current) {
                                 drawCross(data.a, data.b);
                             } else {
                                 drawCircle(data.a, data.b);
                             }
-                            isTurn.current = true;  // Allow the user to play after receiving data
+                            isTurn.current = true;
+                            whoseTurn();
                         } catch (error) {
                             console.error('Error handling data:', error);
                         }
@@ -78,39 +77,39 @@ export default function Playground({ user, game, isNew }) {
                     canvasRef.current.addEventListener('click', (event) => {
                         if (!mainConn) {
                             console.error('No active connection');
-                            return; // Exit if there's no connection
+                            return;
                         }
                     
                         var rect = canvasRef.current.getBoundingClientRect();
                         var x = Math.floor((event.clientX - rect.left) / 100);
                         var y = Math.floor((event.clientY - rect.top) / 100);
                     
-                        if (isTurn.current) {  // Correctly access the 'current' property
+                        if (isTurn.current) {
                             mainConn.current.send(JSON.stringify({
                                 a : x,
                                 b: y
-                            }));  // Send coordinates through the connection
+                            }));
                         
                             if (thisPlayer.current) {
                                 drawCross(x, y);
                             } else {
                                 drawCircle(x, y);
                             }
-                            isTurn.current = false;  // Switch turn after sending
-                            console.log('Move sent');
+                            isTurn.current = false;
                         }
+                        whoseTurn();
                     });
-                
-                    // Handle connection errors
+                    
                     mainConn.current.on('error', (err) => {
                         console.error('Connection error:', err);
                     });
-                
-                    // Handle connection close
+                    
                     mainConn.current.on('close', () => {
                         console.log('Connection closed');
-                        mainConn.current = null;  // Clear the connection when it's closed
+                        mainConn.current = null;
                     });
+                    
+                    whoseTurn();
                 }else{
                     console.log('error');
                 }
@@ -138,25 +137,18 @@ export default function Playground({ user, game, isNew }) {
         });
         peerConnection.current.on('data', () => console.log('data came to me'));
 
-        // Handle peer connection
         peerConnection.current.on('connection', (conn) => {
-            console.log('New connection established');
-             // Assign the connection to the higher-scope variable
-        
             if (mainConn.current = conn) {
-                console.log(mainConn, 'there');
-                // Handle incoming data
                 mainConn.current.on('data', (data) => {
-                    console.log('data came');
-                    data = JSON.parse(data);
-                    console.log('Data received:', data);
                     try {
+                        data = JSON.parse(data);
                         if (!thisPlayer.current) {
                             drawCross(data.a, data.b);
                         } else {
                             drawCircle(data.a, data.b);
                         }
-                        isTurn.current = true;  // Allow the user to play after receiving data
+                        isTurn.current = true;
+                        whoseTurn();
                     } catch (error) {
                         console.error('Error handling data:', error);
                     }
@@ -165,45 +157,56 @@ export default function Playground({ user, game, isNew }) {
                 canvasRef.current.addEventListener('click', (event) => {
                     if (!mainConn) {
                         console.error('No active connection');
-                        return; // Exit if there's no connection
+                        return;
                     }
                 
                     var rect = canvasRef.current.getBoundingClientRect();
                     var x = Math.floor((event.clientX - rect.left) / 100);
                     var y = Math.floor((event.clientY - rect.top) / 100);
                 
-                    if (isTurn.current) {  // Correctly access the 'current' property
+                    if (isTurn.current) {
                         mainConn.current.send(JSON.stringify({
                             a : x,
                             b: y
-                        }));  // Send coordinates through the connection
+                        }));
                     
                         if (thisPlayer.current) {
                             drawCross(x, y);
                         } else {
                             drawCircle(x, y);
                         }
-                        isTurn.current = false;  // Switch turn after sending
-                        console.log('Move sent');
+                        isTurn.current = false;
                     }
+                    whoseTurn();
                 });
-            
-                // Handle connection errors
+                
                 mainConn.current.on('error', (err) => {
                     console.error('Connection error:', err);
                 });
-            
-                // Handle connection close
+                
                 mainConn.current.on('close', () => {
                     console.log('Connection closed');
-                    mainConn.current = null;  // Clear the connection when it's closed
+                    mainConn.current = null;
                 });
+                
+                whoseTurn();
             }else{
                 console.log('error');
             }
         });
 
     }, []);
+
+    const whoseTurn = () => {
+        if (user.data.id == game.data.player_one.id) {
+            isTurn.current ? playerOneLead.current.classList.add('border-2', 'border-gray-400', 'shadow-xl') : playerOneLead.current.classList.remove('border-2', 'border-gray-400', 'shadow-xl');
+            !isTurn.current ? playerTwoLead.current.classList.add('border-2', 'border-gray-400', 'shadow-xl') : playerTwoLead.current.classList.remove('border-2', 'border-gray-400', 'shadow-xl');
+        }
+        if (user.data.id == game.data.player_two.id) {
+            !isTurn.current ? playerOneLead.current.classList.add('border-2', 'border-gray-400', 'shadow-xl') : playerOneLead.current.classList.remove('border-2', 'border-gray-400', 'shadow-xl');
+            isTurn.current ? playerTwoLead.current.classList.add('border-2', 'border-gray-400', 'shadow-xl') : playerTwoLead.current.classList.remove('border-2', 'border-gray-400', 'shadow-xl');
+        }
+    };
 
     const drawCross = (xPos, yPos) => {
         if (matrix.current[xPos][yPos] != null) {
@@ -309,11 +312,21 @@ export default function Playground({ user, game, isNew }) {
                 <canvas width={310} height={310} ref={canvasRef}></canvas>
             </div>
             <div className='mx-auto w-[358px] h-16 overflow-hidden flex flex-row justify-between py-4'>
-                <div className='bg-gray-100 h-full w-fit flex justify-center items-center px-4 rounded'>
+                <div ref={playerOneLead} className='overflow-y-scroll bg-gray-100 h-full w-fit flex justify-center items-center px-4 rounded'>
                     <span className='block font-bold'>Player One: {isNew ? user.data.name : game.data.player_one.name}</span>
+                    <span>|
+                      {user.data.id === game.data.player_one.id 
+                        ? (thisPlayer.current ? 'X' : 'O') 
+                        : (thisPlayer.current ? 'O' : 'X')}
+                    </span>
                 </div>
-                <div className='bg-gray-100 h-full w-fit flex justify-center items-center px-4 rounded'>
+                <div ref={playerTwoLead} className='overflow-y-scroll bg-gray-100 h-full w-fit flex justify-center items-center px-4 rounded'>
                     <span className='block font-bold'>Player Two: {playerTwo == null ? 'loading' : playerTwo.name}</span>
+                    <span>|
+                      {user.data.id !== game.data.player_one.id 
+                        ? (thisPlayer.current ? 'X' : 'O') 
+                        : (thisPlayer.current ? 'O' : 'X')}
+                    </span>
                 </div>
             </div>
             <InlineScoreBoard playerOneScore={playerOneScore.current} playerTwoScore={playerTwoScore.current} />
