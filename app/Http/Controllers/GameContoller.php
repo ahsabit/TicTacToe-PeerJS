@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\EndGame;
 use App\Events\InitiateGame;
 use App\Http\Resources\GameResource;
+use App\Http\Resources\LeaderBoardResource;
 use App\Http\Resources\UserResource;
 use App\Models\Game;
 use App\Models\LeaderBoard;
@@ -55,9 +56,11 @@ class GameContoller extends Controller
 
     public function leaderboard()
     {
-        $leaderboard = LeaderBoard::all();
+        $user = Auth::user();
+        $leaderboard = LeaderBoard::orderBy('score', 'desc')->get();
         return Inertia::render("Leaderboard", [
-            "leaderboard"=> $leaderboard
+            "user"=> new UserResource($user),
+            "leaderboard"=> LeaderBoardResource::collection($leaderboard)
         ]);
     }
 
@@ -76,7 +79,7 @@ class GameContoller extends Controller
     public function score(Request $request)
     {
         $user = $request->user();
-        $winner = LeaderBoard::where('winner_id', $user->id)->get();
+        $winner = LeaderBoard::where('winner_id', $user->id)->first();
         if ($winner->count() > 0) {
             $score = $winner->score + $request->score;
             $winner->update(['score' => $score]);
@@ -87,6 +90,6 @@ class GameContoller extends Controller
                 'score' => $request->score
             ]);
         }
-        response()->json(['status'=> 'success','message'=> 'Score was updated']);
+        return response()->json(['status'=> 'success','message'=> 'Score was updated']);
     }
 }

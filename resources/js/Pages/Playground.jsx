@@ -27,27 +27,11 @@ export default function Playground({ user, game, isNew }) {
     const playerTwoLead = useRef(null);
     const modal = useRef(null);
     const modalMessage = useRef(null);
+    const hasDrawn = useRef(false);
     useEffect(() => {
         user.data.playerSide = thisPlayer.current;
-        canvasContext.current = canvasRef.current.getContext('2d');
-        const verticies = [
-                [[5, 5],   [300, 5]],
-                [[5, 100], [300, 100]],
-                [[5, 200], [300, 200]],
-                [[5, 300], [300, 300]],
-            ];
 
-        verticies.forEach(vertice => {
-                canvasContext.current.beginPath();
-                canvasContext.current.moveTo(vertice[0][0], vertice[0][1]);
-                canvasContext.current.lineTo(vertice[1][0], vertice[1][1]);
-                canvasContext.current.stroke();
-
-                canvasContext.current.beginPath();
-                canvasContext.current.moveTo(vertice[0][1], vertice[0][0]);
-                canvasContext.current.lineTo(vertice[1][1], vertice[1][0]);
-                canvasContext.current.stroke();
-        });
+        drawBoard();
 
         window.Echo.private(`game.${game.data.id}`)
             .listen('InitiateGame', (e) => {
@@ -60,7 +44,7 @@ export default function Playground({ user, game, isNew }) {
                 mainConn.current = peerConnection.current.connect(e.peerId);
         
                 if (mainConn.current) {
-                    isTurn.current = false;
+                    isTurn.current = thisPlayer.current;
                     mainConn.current.on('data', (data) => {
                         try {
                             data = JSON.parse(data);
@@ -141,6 +125,7 @@ export default function Playground({ user, game, isNew }) {
 
         peerConnection.current.on('connection', (conn) => {
             if (mainConn.current = conn) {
+                isTurn.current = thisPlayer.current;
                 mainConn.current.on('data', (data) => {
                     try {
                         data = JSON.parse(data);
@@ -199,6 +184,29 @@ export default function Playground({ user, game, isNew }) {
 
         document.getElementById('close-modal').addEventListener('click', closeModal);
     }, []);
+
+    const drawBoard = () => {
+        canvasContext.current = canvasRef.current.getContext('2d');
+        canvasContext.current.clearRect(0, 0, 310, 310);
+        const verticies = [
+                [[5, 5],   [300, 5]],
+                [[5, 100], [300, 100]],
+                [[5, 200], [300, 200]],
+                [[5, 300], [300, 300]],
+            ];
+
+        verticies.forEach(vertice => {
+                canvasContext.current.beginPath();
+                canvasContext.current.moveTo(vertice[0][0], vertice[0][1]);
+                canvasContext.current.lineTo(vertice[1][0], vertice[1][1]);
+                canvasContext.current.stroke();
+
+                canvasContext.current.beginPath();
+                canvasContext.current.moveTo(vertice[0][1], vertice[0][0]);
+                canvasContext.current.lineTo(vertice[1][1], vertice[1][0]);
+                canvasContext.current.stroke();
+        });
+    }
 
     const whoseTurn = () => {
         if (user.data.id == game.data.player_one.id) {
@@ -304,6 +312,10 @@ export default function Playground({ user, game, isNew }) {
                 }
                 window.axios.post('/score', {
                     score: 1
+                }).then((e) => {
+                    return;
+                }).catch((err) => {
+                    console.error(err);
                 });
                 showModal('You won :)');
             }else if(player == 1 && thisPlayer.current == false){
@@ -328,14 +340,27 @@ export default function Playground({ user, game, isNew }) {
                 }
                 window.axios.post('/score', {
                     score: 1
+                }).then((e) => {
+                    return;
+                }).catch((err) => {
+                    console.error(err);
                 });
                 showModal('You won :)')
             }
-            isTurn.current = false;
+            matrix.current = Array(3).fill(null).map(() => Array(3).fill(null));
+            moveCount.current = 0;
+            setTimeout(() => {
+                drawBoard();
+            }, 200);
             return;
         }
         if (moveCount.current == 9){
-            showModal('It is a Draw :|')
+            matrix.current = Array(3).fill(null).map(() => Array(3).fill(null));
+            moveCount.current = 0;
+            setTimeout(() => {
+                drawBoard();
+            }, 200);
+            showModal('It is a Draw :|');
             return;
         }
     };

@@ -9,6 +9,7 @@ class LeaderBoard extends Model
 {
     /** @use HasFactory<\Database\Factories\LeaderBoardFactory> */
     use HasFactory;
+    protected $fillable = ['winner_name', 'winner_id', 'score'];
 
     public function winner()
     {
