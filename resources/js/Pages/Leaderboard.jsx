@@ -1,7 +1,7 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head } from "@inertiajs/react";
 
-export default function Dashboard({ user, leaderboard }) {
+export default function Leaderboard({ user, leaderboard }) {
     console.log(leaderboard);
     return (
         <AuthenticatedLayout
@@ -11,7 +11,7 @@ export default function Dashboard({ user, leaderboard }) {
                 </h2>
             }
         >
-            <Head title="Dashboard"/>
+            <Head title="Leaderboard"/>
 
             <div className="w-full flex flex-col justify-center items-center">
                 <h1 className="font-bold text-xl mt-4 mb-4">Hello {user.data.name}, let's start playing</h1>

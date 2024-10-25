@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Peer } from "https://esm.sh/peerjs@1.5.4?bundle-deps";
 import '../echo';
 import axios from 'axios';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import InlineScoreBoard from '@/Components/InlineScoreBoard';
 window.axios = axios;
 
@@ -27,7 +27,6 @@ export default function Playground({ user, game, isNew }) {
     const playerTwoLead = useRef(null);
     const modal = useRef(null);
     const modalMessage = useRef(null);
-    const hasDrawn = useRef(false);
     useEffect(() => {
         user.data.playerSide = thisPlayer.current;
 
@@ -37,6 +36,7 @@ export default function Playground({ user, game, isNew }) {
             .listen('InitiateGame', (e) => {
                 if (e.player.isPlayerTwo == true && user.data.id != e.player.id) {
                     setPlayerTwo(e.player);
+                    game.data.player_two = e.player;
                 } else {
                     setPlayerTwo(user.data);
                 }
@@ -101,7 +101,10 @@ export default function Playground({ user, game, isNew }) {
                 }
             })
             .listen('EndGame', (e) => {
-                console.log(e);
+                showModal('The End.');
+                setTimeout(() => {
+                    router.get(route('dashboard'));
+                }, 700);
             });
         peerConnection.current.on('open', (id) => {
             var isSecond = false;
@@ -121,7 +124,6 @@ export default function Playground({ user, game, isNew }) {
                 });
             }
         });
-        peerConnection.current.on('data', () => console.log('data came to me'));
 
         peerConnection.current.on('connection', (conn) => {
             if (mainConn.current = conn) {
@@ -184,6 +186,19 @@ export default function Playground({ user, game, isNew }) {
 
         document.getElementById('close-modal').addEventListener('click', closeModal);
     }, []);
+
+    const endGame = () => {
+        peerConnection.current.destroy();
+        window.axios.post('/stop', {
+            gameId: game.data.id,
+            player: user.data,
+        }).then((e) => {
+            router.get(route('dashboard'));
+            return;
+        }).catch((err) => {
+            throw new Error(err);
+        });
+    };
 
     const drawBoard = () => {
         canvasContext.current = canvasRef.current.getContext('2d');
@@ -400,10 +415,13 @@ export default function Playground({ user, game, isNew }) {
                 </div>
             </div>
             <InlineScoreBoard playerOneScore={playerOneScore} playerTwoScore={playerTwoScore} />
+            <div className='w-[358px] mx-auto mt-4 flex justify-end items-end'>
+                <button onClick={() => endGame()} className='bg-red-500 rounded text-white py-2 px-4'>End Game</button>
+            </div>
             <div ref={modal} className="fixed inset-0 items-center justify-center bg-gray-900 bg-opacity-50 hidden">
-                <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+                <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full relative">
                     <h2 ref={modalMessage} className="text-xl font-semibold mb-4">Custom Alert</h2>
-                    <button id="close-modal" className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                    <button id="close-modal" className="absolute right-2 bottom-2 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
                         OK
                     </button>
                 </div>

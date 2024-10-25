@@ -72,7 +72,11 @@ class GameContoller extends Controller
 
     public function endGame(Request $request)
     {
-        broadcast(new EndGame($request->gameId, $request->peerId))->toOthers();
+        $game = Game::find($request->gameId);
+        if ($game) {
+            $game->delete();
+        }
+        broadcast(new EndGame($request->gameId))->toOthers();
         return response()->json(['status'=> 'success', 'message'=> 'Game ending request sent']);
     }
 
@@ -80,7 +84,7 @@ class GameContoller extends Controller
     {
         $user = $request->user();
         $winner = LeaderBoard::where('winner_id', $user->id)->first();
-        if ($winner->count() > 0) {
+        if ($winner) {
             $score = $winner->score + $request->score;
             $winner->update(['score' => $score]);
         } else {

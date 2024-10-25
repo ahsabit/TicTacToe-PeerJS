@@ -14,15 +14,13 @@ class EndGame implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
     public $gameId;
-    public $peerId;
 
     /**
      * Create a new event instance.
      */
-    public function __construct($gameId, $peerId)
+    public function __construct($gameId)
     {
         $this->gameId = $gameId;
-        $this->peerId = $peerId;
     }
 
     /**
